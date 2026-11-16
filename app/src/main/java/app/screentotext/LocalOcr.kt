@@ -53,10 +53,18 @@ object LocalOcr {
 
     // ------------------------------------------------------------- recognition
 
+    /** Which version won the last read, and the scores. For tests and tuning. */
+    @Volatile
+    var lastChoice = ""
+
     private fun bestOf(bitmap: Bitmap): String {
         val plain = read(bitmap)
         val cleaned = read(enhance(bitmap))
-        return if (cleaned.second >= plain.second) cleaned.first else plain.first
+        val useCleaned = cleaned.second >= plain.second
+        lastChoice = "plain=%.1f cleaned=%.1f -> %s".format(
+            plain.second, cleaned.second, if (useCleaned) "cleaned" else "plain"
+        )
+        return if (useCleaned) cleaned.first else plain.first
     }
 
     /** Text plus a score: confidence-weighted count of letters and digits found. */

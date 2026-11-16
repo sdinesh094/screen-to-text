@@ -46,36 +46,35 @@ class WebcamLikeOcrTest {
 
     @Test
     fun webcamLikePhotoReadsBetterAfterImprovements() {
-        val photo = webcamLikePhoto()
         val all = (prose + code).joinToString(" ")
         val codeOnly = code.joinToString(" ")
-        val codePanel = Bitmap.createBitmap(photo, photo.width / 2, 0, photo.width / 2, photo.height)
+        val report = StringBuilder("\n===== WEBCAM-LIKE TEST =====")
+        var worse = ""
 
-        val fullBefore = ocr(photo, enhance = false)
-        val fullAfter = ocr(photo, enhance = true)
-        val cropBefore = ocr(codePanel, enhance = false)
-        val cropAfter = ocr(codePanel, enhance = true)
+        // fontSize on a 2560-wide screen, and how much focus blur
+        for ((name, font, blur) in listOf(
+            Triple("easy", 30f, 900), Triple("medium", 24f, 700), Triple("hard", 20f, 560)
+        )) {
+            val photo = webcamLikePhoto(font, blur)
+            val box = Bitmap.createBitmap(photo, photo.width / 2, 0, photo.width / 2, photo.height)
 
-        val sFullBefore = similarity(fullBefore, all)
-        val sFullAfter = similarity(fullAfter, all)
-        val sCropBefore = similarity(cropBefore, codeOnly)
-        val sCropAfter = similarity(cropAfter, codeOnly)
+            val fullOld = similarity(ocr(photo, false), all)
+            val fullNewText = ocr(photo, true)
+            val fullNew = similarity(fullNewText, all)
+            val fullChoice = LocalOcr.lastChoice
+            val boxOld = similarity(ocr(box, false), codeOnly)
+            val boxNewText = ocr(box, true)
+            val boxNew = similarity(boxNewText, codeOnly)
+            val boxChoice = LocalOcr.lastChoice
 
-        Log.i(
-            "OCR_TEST",
-            "\n===== WEBCAM-LIKE TEST =====" +
-                "\nWhole photo, old reader : ${pct(sFullBefore)}" +
-                "\nWhole photo, new reader : ${pct(sFullAfter)}" +
-                "\nCode box,    old reader : ${pct(sCropBefore)}" +
-                "\nCode box,    new reader : ${pct(sCropAfter)}" +
-                "\n--- whole photo, old ---\n$fullBefore" +
-                "\n--- whole photo, new ---\n$fullAfter" +
-                "\n--- code box, new ---\n$cropAfter" +
-                "\n============================"
-        )
-
-        assertTrue("New reader is worse on the whole photo", sFullAfter >= sFullBefore - 0.02)
-        assertTrue("New reader is worse on the code box", sCropAfter >= sCropBefore - 0.02)
+            report.append("\n[$name] whole photo  old ${pct(fullOld)}  new ${pct(fullNew)}   ($fullChoice)")
+            report.append("\n[$name] code box     old ${pct(boxOld)}  new ${pct(boxNew)}   ($boxChoice)")
+            if (name == "hard") report.append("\n--- hard, code box, new ---\n$boxNewText")
+            if (fullNew < fullOld - 0.02 || boxNew < boxOld - 0.02) worse += " $name"
+        }
+        report.append("\n============================")
+        Log.i("OCR_TEST", report.toString())
+        assertTrue("New reader is worse on:$worse", worse.isEmpty())
     }
 
     // ------------------------------------------------------------------ helpers
@@ -95,21 +94,21 @@ class WebcamLikeOcrTest {
     }
 
     /** Draws the page sharp, then degrades it the way a webcam does. */
-    private fun webcamLikePhoto(): Bitmap {
+    private fun webcamLikePhoto(font: Float, blurWidth: Int): Bitmap {
         // Sharp page, as on the laptop
         val page = Bitmap.createBitmap(2560, 1440, Bitmap.Config.ARGB_8888)
         val c = Canvas(page)
         c.drawColor(Color.parseColor("#1A1A1A"))
-        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 30f }
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = font }
         text.color = Color.parseColor("#D0D0D0")
         text.typeface = Typeface.SANS_SERIF
-        prose.forEachIndexed { i, s -> c.drawText(s, 60f, 200f + i * 48f, text) }
+        prose.forEachIndexed { i, s -> c.drawText(s, 60f, 200f + i * font * 1.6f, text) }
         text.typeface = Typeface.MONOSPACE
         text.color = Color.parseColor("#CFE3FF")
-        code.forEachIndexed { i, s -> c.drawText(s, 1340f, 200f + i * 48f, text) }
+        code.forEachIndexed { i, s -> c.drawText(s, 1340f, 200f + i * font * 1.6f, text) }
 
         // Webcam: whole screen squeezed into 1280x720, slightly out of focus
-        val soft = Bitmap.createScaledBitmap(page, 900, 506, true)
+        val soft = Bitmap.createScaledBitmap(page, blurWidth, blurWidth * 9 / 16, true)
         val photo = Bitmap.createScaledBitmap(soft, 1280, 720, true)
             .copy(Bitmap.Config.ARGB_8888, true)
 
