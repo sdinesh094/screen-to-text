@@ -57,6 +57,7 @@ dependencies {
 
     // On-phone text recognition (model is bundled in the APK, works offline)
     implementation 'com.google.mlkit:text-recognition:16.0.1'
+    implementation 'com.google.android.gms:play-services-tasks:18.0.2'
 
     // Emulator tests only, not shipped in the app
     androidTestImplementation 'androidx.test:runner:1.5.2'

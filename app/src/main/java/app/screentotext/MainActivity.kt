@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.hardware.usb.UsbDevice
 import android.net.Uri
 import android.os.Bundle
@@ -15,7 +16,6 @@ import android.view.SurfaceHolder
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: Prefs
 
     private lateinit var cameraView: AspectRatioSurfaceView
-    private lateinit var capturedView: ImageView
+    private lateinit var capturedView: CropImageView
     private lateinit var statusText: TextView
     private lateinit var captureButton: Button
     private lateinit var resolutionButton: Button
@@ -65,6 +65,9 @@ class MainActivity : AppCompatActivity() {
 
     /** The photo currently shown; null while the live feed is showing. */
     private var captured: Bitmap? = null
+
+    /** Part of the photo chosen by dragging; null means the whole photo. */
+    private var selection: Rect? = null
 
     /** Goes up by one for every read, so a slow old answer is ignored. */
     private var ocrRun = 0
@@ -122,7 +125,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.pickButton).setOnClickListener { pickImage.launch("image/*") }
         resolutionButton.setOnClickListener { showResolutionDialog() }
         findViewById<Button>(R.id.settingsButton).setOnClickListener { showSettingsDialog() }
-        rerunButton.setOnClickListener { captured?.let { runOcr(it) } }
+        rerunButton.setOnClickListener { readCurrent() }
+        capturedView.onSelection = { area ->
+            selection = area
+            readCurrent()
+        }
         copyButton.setOnClickListener { copyText() }
 
         cloudSwitch.isChecked = prefs.useCloud
@@ -367,16 +374,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCaptured(bitmap: Bitmap) {
         captured = bitmap
+        selection = null
+        capturedView.clearSelection()
         capturedView.setImageBitmap(bitmap)
         capturedView.visibility = View.VISIBLE
-        setStatus("Photo  ${bitmap.width}×${bitmap.height}")
         updateButtons()
-        runOcr(bitmap)
+        readCurrent()
+    }
+
+    /** Reads the selected part of the photo, or all of it. */
+    private fun readCurrent() {
+        val photo = captured ?: return
+        val area = selection
+        if (area == null) {
+            setStatus("Photo ${photo.width}×${photo.height} · drag a box to read one part")
+            runOcr(photo)
+        } else {
+            setStatus("Reading the boxed part · tap the photo to read it all")
+            runOcr(Bitmap.createBitmap(photo, area.left, area.top, area.width(), area.height()))
+        }
     }
 
     private fun showLive() {
         ocrRun++ // drop any answer still on its way
         captured = null
+        selection = null
+        capturedView.clearSelection()
         capturedView.visibility = View.GONE
         capturedView.setImageDrawable(null)
         progress.visibility = View.GONE
