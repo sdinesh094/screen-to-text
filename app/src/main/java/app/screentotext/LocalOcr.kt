@@ -67,6 +67,9 @@ object LocalOcr {
         return if (useCleaned) cleaned.first else plain.first
     }
 
+    /** Reads one exact image on the calling (background) thread. For tests. */
+    fun readNow(bitmap: Bitmap): String = read(bitmap).first
+
     /** Text plus a score: confidence-weighted count of letters and digits found. */
     private fun read(bitmap: Bitmap): Pair<String, Float> {
         val result = Tasks.await(recognizer.process(InputImage.fromBitmap(bitmap, 0)))
@@ -88,14 +91,20 @@ object LocalOcr {
      * Makes small, soft, low-contrast text easier to read:
      * enlarge, turn grey, flip light-on-dark screens, stretch contrast, sharpen.
      */
-    fun enhance(src: Bitmap): Bitmap {
+    fun enhance(
+        src: Bitmap,
+        enlarge: Boolean = true,
+        flipDark: Boolean = true,
+        stretch: Boolean = true,
+        sharpen: Boolean = true,
+    ): Bitmap {
         // 1. Enlarge. The recognizer misses letters only a few pixels tall.
         val longEdge = max(src.width, src.height)
         val scale = when {
             longEdge >= 3000 -> 1f
             else -> min(2.5f, 3000f / longEdge)
         }
-        val big = if (scale > 1.05f) {
+        val big = if (enlarge && scale > 1.05f) {
             Bitmap.createScaledBitmap(
                 src, (src.width * scale).roundToInt(), (src.height * scale).roundToInt(), true
             )
@@ -121,7 +130,7 @@ object LocalOcr {
         }
 
         // 3. Dark-mode screen: flip to dark text on a light page.
-        val dark = sum / y.size < 110
+        val dark = flipDark && sum / y.size < 110
         if (dark) {
             for (i in y.indices) y[i] = 255 - y[i]
             histogram.reverse()
@@ -131,14 +140,14 @@ object LocalOcr {
         val lo = percentile(histogram, y.size, 0.01)
         val hi = percentile(histogram, y.size, 0.99)
         val range = max(1, hi - lo)
-        for (i in y.indices) y[i] = ((y[i] - lo) * 255 / range).coerceIn(0, 255)
+        if (stretch) for (i in y.indices) y[i] = ((y[i] - lo) * 255 / range).coerceIn(0, 255)
 
         // 5. Mild sharpening: push each pixel away from its neighbours' average.
         val out = IntArray(w * h)
         for (row in 0 until h) {
             for (col in 0 until w) {
                 val i = row * w + col
-                val v = if (row == 0 || col == 0 || row == h - 1 || col == w - 1) {
+                val v = if (!sharpen || row == 0 || col == 0 || row == h - 1 || col == w - 1) {
                     y[i]
                 } else {
                     val avg = (y[i - 1] + y[i + 1] + y[i - w] + y[i + w]) / 4

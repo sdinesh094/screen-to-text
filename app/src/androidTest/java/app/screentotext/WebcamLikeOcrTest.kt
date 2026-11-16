@@ -77,6 +77,33 @@ class WebcamLikeOcrTest {
         assertTrue("New reader is worse on:$worse", worse.isEmpty())
     }
 
+    /** Which single clean-up step helps? Logs scores per step; never fails. */
+    @Test
+    fun cleanUpStepExperiment() {
+        val all = (prose + code).joinToString(" ")
+        val report = StringBuilder("\n===== CLEAN-UP STEPS =====")
+        for ((name, font, blur) in listOf(Triple("medium", 24f, 700), Triple("med-hard", 22f, 620))) {
+            val photo = webcamLikePhoto(font, blur)
+            val variants = linkedMapOf<String, () -> Bitmap>(
+                "plain" to { photo },
+                "gray only" to { LocalOcr.enhance(photo, false, false, false, false) },
+                "enlarge" to { LocalOcr.enhance(photo, true, false, false, false) },
+                "flip dark" to { LocalOcr.enhance(photo, false, true, false, false) },
+                "stretch" to { LocalOcr.enhance(photo, false, false, true, false) },
+                "sharpen" to { LocalOcr.enhance(photo, false, false, false, true) },
+                "enlarge+stretch" to { LocalOcr.enhance(photo, true, false, true, false) },
+                "enlarge+flip+stretch" to { LocalOcr.enhance(photo, true, true, true, false) },
+                "all" to { LocalOcr.enhance(photo) },
+            )
+            for ((v, make) in variants) {
+                val text = LocalOcr.readNow(make())
+                report.append("\n[$name] %-22s %s".format(v, pct(similarity(text, all))))
+            }
+        }
+        report.append("\n==========================")
+        Log.i("OCR_TEST", report.toString())
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private fun ocr(bitmap: Bitmap, enhance: Boolean): String {
