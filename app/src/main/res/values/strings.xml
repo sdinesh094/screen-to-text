@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Screen to Text</string>
+    <string name="capture">Capture</string>
+    <string name="retake">Live view</string>
+    <string name="pick_image">Pick image</string>
+    <string name="cloud_ai">Cloud AI</string>
+    <string name="copy">Copy</string>
+    <string name="rerun">Read again</string>
+    <string name="settings">Settings</string>
+    <string name="resolution">Resolution</string>
+    <string name="waiting_for_camera">Plug in the USB webcam</string>
+    <string name="result_hint">Extracted text appears here. You can edit it before copying.</string>
+    <string name="api_key_label">Claude API key</string>
+    <string name="model_label">Model</string>
+</resources>

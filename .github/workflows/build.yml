@@ -1,0 +1,48 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk ScreenToText.apk
+
+      # Copy 1: attached to this workflow run (Actions tab, needs login)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ScreenToText-apk
+          path: ScreenToText.apk
+
+      # Copy 2: a "latest" release with a direct download link, easy from a phone
+      - name: Publish to the "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest ScreenToText.apk \
+            --title "Latest build" \
+            --notes "Built from commit ${GITHUB_SHA}. Install ScreenToText.apk on your phone." \
+            --prerelease \
+            --target "${GITHUB_SHA}"
