@@ -88,15 +88,17 @@ object LocalOcr {
     // ---------------------------------------------------------------- clean-up
 
     /**
-     * Makes small, soft, low-contrast text easier to read:
-     * enlarge, turn grey, flip light-on-dark screens, stretch contrast, sharpen.
+     * Makes small, soft text easier to read: enlarge, turn grey, and flip
+     * light-on-dark screens to dark-on-light.
      */
     fun enhance(
         src: Bitmap,
         enlarge: Boolean = true,
         flipDark: Boolean = true,
-        stretch: Boolean = true,
-        sharpen: Boolean = true,
+        // Tested on webcam-like photos: these two amplify camera noise and
+        // make reading worse, so they are off by default.
+        stretch: Boolean = false,
+        sharpen: Boolean = false,
     ): Bitmap {
         // 1. Enlarge. The recognizer misses letters only a few pixels tall.
         val longEdge = max(src.width, src.height)

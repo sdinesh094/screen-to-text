@@ -91,9 +91,7 @@ class WebcamLikeOcrTest {
                 "flip dark" to { LocalOcr.enhance(photo, false, true, false, false) },
                 "stretch" to { LocalOcr.enhance(photo, false, false, true, false) },
                 "sharpen" to { LocalOcr.enhance(photo, false, false, false, true) },
-                "enlarge+stretch" to { LocalOcr.enhance(photo, true, false, true, false) },
-                "enlarge+flip+stretch" to { LocalOcr.enhance(photo, true, true, true, false) },
-                "all" to { LocalOcr.enhance(photo) },
+                "enlarge+flip (new)" to { LocalOcr.enhance(photo) },
             )
             for ((v, make) in variants) {
                 val text = LocalOcr.readNow(make())
