@@ -79,7 +79,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/pick_image" />
+            android:text="@string/pick_image"     android:maxLines="1"
+            android:textAllCaps="false"
+            android:textSize="14sp" />
 
         <Button
             android:id="@+id/resolutionButton"
@@ -88,7 +90,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:enabled="false"
-            android:text="@string/resolution" />
+            android:text="@string/resolution"     android:maxLines="1"
+            android:textAllCaps="false"
+            android:textSize="14sp" />
 
         <Button
             android:id="@+id/settingsButton"
@@ -96,7 +100,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/settings" />
+            android:text="@string/settings"     android:maxLines="1"
+            android:textAllCaps="false"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <!-- Bottom half: extracted text -->
