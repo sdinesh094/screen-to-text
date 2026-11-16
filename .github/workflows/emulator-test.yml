@@ -46,6 +46,8 @@ jobs:
             sleep 8
             adb exec-out screencap -p > screenshot.png
             adb logcat -d > logcat.txt
+            cat ocr-output.txt
+            echo "SCREENSHOT_BASE64_START"; base64 -w0 screenshot.png; echo; echo "SCREENSHOT_BASE64_END"
             if grep -q "FATAL EXCEPTION" logcat.txt; then echo "App crashed"; grep -A30 "FATAL EXCEPTION" logcat.txt; exit 1; fi
 
       - if: always()
