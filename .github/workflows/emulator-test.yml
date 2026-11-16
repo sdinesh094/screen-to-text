@@ -41,9 +41,13 @@ jobs:
             adb logcat -c
             gradle connectedDebugAndroidTest --no-daemon --stacktrace || (adb logcat -d > logcat.txt; exit 1)
             adb logcat -d -s OCR_TEST:I > ocr-output.txt
+            gradle installDebug --no-daemon
             adb shell pm grant app.screentotext android.permission.CAMERA
-            adb shell am start -W -n app.screentotext/.MainActivity
+            adb shell am start -W -n app.screentotext/.MainActivity | tee start.txt
+            if grep -q "Error" start.txt; then echo "App did not start"; exit 1; fi
             sleep 8
+            adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | tee resumed.txt
+            if ! grep -q "app.screentotext" resumed.txt; then echo "App is not in the foreground"; adb logcat -d | grep -A30 "FATAL EXCEPTION"; exit 1; fi
             adb exec-out screencap -p > screenshot.png
             adb logcat -d > logcat.txt
             cat ocr-output.txt
